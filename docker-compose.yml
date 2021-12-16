@@ -1,0 +1,27 @@
+version: '2.1'
+services:
+  app:
+    build: .
+    container_name: openvpn-as
+    ports:
+      - "8080:8080"
+      - "1194:1194/udp"
+      - "943:943"
+      - 944:944
+    cap_add:
+      - NET_ADMIN
+    # Mount volume 
+    volumes:
+      - "./data:/app"
+    restart: unless-stopped
+    depends_on:
+      - db
+
+  db:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+    volumes:
+      - ./db:/var/lib/mysql
