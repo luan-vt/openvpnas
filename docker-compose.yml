@@ -1,13 +1,13 @@
 version: '2.1'
 services:
   app:
-    build: .
+    build: ./.docker
     container_name: openvpn-as
     ports:
       - "8080:8080"
       - "1194:1194/udp"
-      - "943:943"
-      - 944:944
+      - 172.17.0.1:943:943
+      - 172.17.0.1:945:945
     cap_add:
       - NET_ADMIN
     # Mount volume 
