@@ -8,21 +8,24 @@ ARG DEBIAN_FRONTEND="noninteractive"
 ENV TZ="Etc/UTC"
 
 RUN \
-   apt-get update && \
-   apt-get install --no-install-recommends -y \
-      ca-certificates \
-      wget \
-      net-tools \
-      gnupg \
-      tzdata
+  apt-get update \
+  && apt-get install --no-install-recommends -y \
+    ca-certificates \
+    wget \
+    net-tools \
+    gnupg \
+    tzdata \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
 RUN \
-	wget https://as-repository.openvpn.net/as-repo-public.asc -qO /etc/apt/trusted.gpg.d/as-repository.asc && \
-	echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/as-repository.asc] http://as-repository.openvpn.net/as/debian focal main">/etc/apt/sources.list.d/openvpn-as-repo.list && \
-	apt update && apt -y install openvpn-as
+  wget https://as-repository.openvpn.net/as-repo-public.asc -qO /etc/apt/trusted.gpg.d/as-repository.asc \
+  && echo "deb [arch=amd64 signed-by=/etc/apt/trusted.gpg.d/as-repository.asc] http://as-repository.openvpn.net/as/debian focal main">/etc/apt/sources.list.d/openvpn-as-repo.list \
+  && apt-get update && apt-get -y install --no-install-recommends  openvpn-as \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
-
-ADD scripts/ /scripts
+COPY scripts/ /scripts
 RUN \
 	cp -r /usr/local/openvpn_as/etc /sample_etc && \
 	chmod -R +x /scripts && \
