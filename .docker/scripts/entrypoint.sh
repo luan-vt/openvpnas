@@ -1,5 +1,11 @@
 #!/usr/bin/bash
 
+#Override openvpn file if exist in /app/etc folder
+if [ -e /app/etc/pyovpn-*.egg ]; then
+    echo "Load license file from configuration folder data/etc/pyovpn-*.egg"
+    cp /app/etc/pyovpn-* /app/lib/python
+fi
+
 mkdir -p /dev/net
 
 # create tun device
@@ -8,14 +14,10 @@ if [ ! -c /dev/net/tun ]; then
     mknod /dev/net/tun c 10 200
 fi
 
-
-if [[ $(find /app/etc/db -type f | wc -l) -eq 0 || ! -f "/app/etc/as.conf" ]]; then
-    echo "Installing openvpn-as for the first time"
+if [[  $(find /app/etc/db -type f | wc -l) -eq 0 || ! -f "/app/etc/as.conf" ]]; then
+    echo "Initializing openvpn-as for the first time"
+    cp -r /sample_etc/* /usr/local/openvpn_as/etc/
     ASCONFIG='DELETE\nyes\nyes\n1\nsecp384r1\nsecp384r1\n943\n9443\nyes\nyes\nyes\nno\nadmin\nAdmin@123\nAdmin@123\n\n'
-    apt-get update && \
-    apt-get install --no-install-recommends -y \
-        openvpn-as && \
-    rm -rf /var/lib/apt/lists/*
     echo "Stopping openvpn-as now; will start again later after configuring"
     kill $(ps aux | grep openvpnas | grep -v "\-\-color" | awk '{print $2}') > /dev/null 2>&1
     CONFINPUT=$ASCONFIG

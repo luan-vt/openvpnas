@@ -2,17 +2,19 @@
 
 DIR=/app/lib/python
 
-while true; do
-    read -p 'Number of concurrent connections: '
 
-    if ! [[ "$REPLY" =~ ^-?[0-9]+$ ]]; then echo 'Error: Not an integer' >&2
-    elif (( REPLY <= 0   ));           then echo 'Error: Need positive integers >0' >&2
-    else
-        CONCURRENT_CONNECTIONS=$REPLY
-        break
-    fi
-done
+#while true; do
+#    read -p 'Number of concurrent connections: '
+#
+#    if ! [[ "$REPLY" =~ ^-?[0-9]+$ ]]; then echo 'Error: Not an integer' >&2
+#    elif (( REPLY <= 0   ));           then echo 'Error: Need positive integers >0' >&2
+#    else
+#        CONCURRENT_CONNECTIONS=$REPLY
+#        break
+#    fi
+#done
 
+CONCURRENT_CONNECTIONS=${ALLOWED_CONNECTIONS:=2048}
 cd $DIR
 
 PYOVPN=$(ls -1 | grep pyovpn*.egg | grep -v .bak)
@@ -38,40 +40,47 @@ if ! [ -x "$(command -v pip3)" ]; then
 fi
 
 if [ ! -z "$ADDED_PACKAGES" ]; then
-    echo "Install packages: $ADDED_PACKAGES"
-    apt update > /dev/null
-    apt install -y $ADDED_PACKAGES > /dev/null
+    echo "Installing necessary packages: $ADDED_PACKAGES"
+    apt-get update > /dev/null
+    apt-get install -y $ADDED_PACKAGES > /dev/null
 fi
 
-#Extract code of compiled file
+pip3 install uncompyle6 > /dev/null
+
+#Extract compiled file
 echo "Decompile the library"
 mkdir -p unlock
-cp $PYOVPN $PYOVPN.bak
 cp $PYOVPN unlock/$PYOVPN
 
 cd $DIR/unlock
 unzip -oq $PYOVPN
-rm -rf $PYOVPN
-pip3 install uncompyle6
+
 cd $DIR/unlock/pyovpn/lic/
+#Decompile
 uncompyle6 uprop.pyc > uprop.py
+#Inject code
 sed -i "/ret\['concurrent_connections'\] = [0-9]*$/d" uprop.py
+sed -i "s/^\([[:space:]]*\)return[[:space:]]*return/\1return/" uprop.py
 sed -i "s/^\([[:space:]]*\)return ret/\1ret['concurrent_connections'] = $CONCURRENT_CONNECTIONS\n\1return ret/" uprop.py
 rm -f uprop.pyc
+#Compile
 python3 -O -m compileall uprop.py && mv __pycache__/uprop* uprop.pyc
 
 cd $DIR/unlock
-DIRS=$(ls -l | grep "^d" | awk '{print $9}')
-zip -qr $PYOVPN.zip $DIRS
-mv $PYOVPN.zip ../$PYOVPN
+zip -u $PYOVPN pyovpn/lic/uprop.pyc
+
+#cp $PYOVPN /app/etc
+mv $PYOVPN ../$PYOVPN
 
 cd $DIR/
-rm -rf __pycache__/* $DIR/unlock
+rm -rf __pycache__/* $DIR/unlock 
 
 echo "Cleaning"
-pip3 uninstall -y uncompyle6
-apt remove -y $ADDED_PACKAGES
-rm -rf /var/lib/apt/lists/*
+pip3 uninstall -y uncompyle6 > /dev/null
+apt-get remove -y $ADDED_PACKAGES > /dev/null
+rm -rf /var/lib/apt/lists/* > /dev/null
 
-echo "Activated successfully. Restart the OpenVPNAS service or docker to take effect"
-#Follow: https://devopsvn.xyz/2021/07/29/huong-dan-cai-dat-va-unlock-openvpn-access-server/
+
+echo "Activated successfully."
+#echo "The modified license file save to configuration folder /app/etc/$PYOVPN"
+echo "Restart the OpenVPNAS service or docker to take effect"

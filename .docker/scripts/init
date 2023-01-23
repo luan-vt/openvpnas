@@ -1,0 +1,40 @@
+#!/usr/bin/bash
+
+echo "Initializing openvpn-as for the first time"
+
+#TODO: Auto config
+ASCONFIG='DELETE\nyes\nyes\n1\nsecp384r1\n943\n9443\nyes\nyes\nyes\nno\nadmin\nAdmin@123\nAdmin@123\n\n'
+echo "Stopping openvpn-as now; will start again later after configuring"
+kill $(ps aux | grep openvpnas | grep -v "\-\-color" | awk '{print $2}') > /dev/null 2>&1
+CONFINPUT=$ASCONFIG
+printf  "${CONFINPUT}" | /usr/local/openvpn_as/bin/ovpn-init
+echo "Stopping openvpn-as now; will start again later after configuring"
+kill $(ps aux | grep openvpnas | grep -v "\-\-color" | awk '{print $2}') > /dev/null 2>&1
+/usr/local/openvpn_as/scripts/openvpnas
+# ---- END AUTO CONFIG ----
+
+echo "Stopping openvpn-as now; will start again later after configuring"
+kill $(ps aux | grep openvpnas | grep -v "\-\-color" | awk '{print $2}') > /dev/null 2>&1
+/usr/local/openvpn_as/bin/ovpn-init
+echo "Stopping openvpn-as now; will start again later after configuring"
+kill $(ps aux | grep openvpnas | grep -v "\-\-color" | awk '{print $2}') > /dev/null 2>&1
+/usr/local/openvpn_as/scripts/openvpnas
+
+echo "Configuring network interface"
+if [ -z "$INTERFACE" ]; then
+    SET_INTERFACE="eth0"
+else
+    SET_INTERFACE=$INTERFACE
+fi
+/usr/local/openvpn_as/scripts/sacli --key "admin_ui.https.ip_address" --value "$SET_INTERFACE" ConfigPut
+/usr/local/openvpn_as/scripts/sacli --key "cs.https.ip_address" --value "$SET_INTERFACE" ConfigPut
+/usr/local/openvpn_as/scripts/sacli --key "vpn.daemon.0.listen.ip_address" --value "$SET_INTERFACE" ConfigPut
+/usr/local/openvpn_as/scripts/sacli --key "vpn.daemon.0.server.ip_address" --value "$SET_INTERFACE" ConfigPut
+
+echo "Configuring network host"
+HOST=$(curl -s ifconfig.me)
+/usr/local/openvpn_as/scripts/sacli --key "host.name" --value "$HOST" ConfigPut
+/usr/local/openvpn_as/scripts/sacli Stop > /dev/null
+kill $(ps aux | grep openvpnas | grep -v "\-\-color" | awk '{print $2}') > /dev/null 2>&1
+
+echo "Well done. Restart docker container to continue"
