@@ -33,6 +33,7 @@ services:
 ```
 
 ### Change the limit of simultaneous connections (removed from 2.11.2)
+From version 2.11.2, the number of concurrent connections was increased to 4096 (unofficially). So, the activation isn't necessary. If you want to adjust it, you can use the activation script (not sure of success)
 1. Run inside docker: `activate`
 2. Run through docker-compose: `docker compose exec <service-name> activate`
 
